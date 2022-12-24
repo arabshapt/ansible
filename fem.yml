@@ -1,0 +1,53 @@
+- hosts: localhost
+  become: true
+  vars:
+    source_key: "./.ssh/pi_id_rsa"
+    dest_key: "{{ lookup('env', 'HOME') }}/.ssh/id_rsa"
+    # personal: "{{ lookup('env', 'HOME') }}/personal"
+  pre_tasks:
+    - name: Update Apt
+      become: true
+      apt:
+        update_cache: true
+      tags:
+        - install
+        - dotfiles
+        - stow
+  tasks:
+    # - include: tasks/core-setup.yml
+    - name: Install zsh
+      apt: name=zsh
+    - name: Change shell
+      shell: chsh -s `which zsh`
+      become: yes
+    - name: Install ohmyzsh
+      shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    - name: Install fzf
+      ansible.builtin.git:
+        repo: "https://github.com/unixorn/fzf-zsh-plugin.git"
+        dest: "~/.oh-my-zsh/custom}/plugins/fzf-zsh-plugin"
+    - name: Installing stow
+      apt: name=stow
+      tags:
+        - install
+        - dotfiles
+        - stow
+    - name: Cloning .dotfiles
+      ansible.builtin.git:
+        repo: "https://github.com/arabshapt/.dotfiles.git"
+        dest: "{{ lookup('env', 'HOME') }}/.dotfiles"
+        recursive: yes
+        update: yes
+        accept_hostkey: yes
+        version: master
+      tags:
+        - install
+        - dotfiles
+        - stow
+    - name: Stow dotfiles
+      shell: cd "{{ lookup('env', 'HOME') }}/.dotfiles" && ./ubuntu "{{ lookup('env', 'HOME') }}"
+      become: false
+      tags:
+        - install
+        - dotfiles
+        - stow
