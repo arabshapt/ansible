@@ -1,6 +1,6 @@
 - name: Install ZSH
   apt: name=zsh
-  tags: &tags_for_zsh_tasks ["install", "productivity", "dotfiles", "zsh"]
+  tags: &tags_for_zsh_tasks ["dotfiles", "zsh"]
 
 - name: Change shell to zsh
   shell: chsh -s $(which zsh)
@@ -23,3 +23,19 @@
     repo: "https://github.com/zsh-users/zsh-autosuggestions.git"
     dest: "~/.oh-my-zsh/plugins/zsh-autosuggestions"
   tags: *tags_for_zsh_tasks
+
+- name: Download fzf
+  ansible.builtin.git:
+    repo: https://github.com/junegunn/fzf.git
+    dest: ~/.fzf
+    depth: 1
+  become: false
+
+- name: Install fzf
+  shell: sudo ~/.fzf/install
+  become: false
+
+- name: Install fzf plugin
+  ansible.builtin.git:
+    repo: "https://github.com/unixorn/fzf-zsh-plugin.git"
+    dest: "~/.oh-my-zsh/custom}/plugins/fzf-zsh-plugin"
