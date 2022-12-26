@@ -1,8 +1,11 @@
-- hosts: localhost
+- hosts: pi
   become: true
   vars:
-    source_key: "./.ssh/pi_id_rsa"
-    dest_key: "{{ lookup('env', 'HOME') }}/.ssh/id_rsa"
+    ansible_ssh_user: pi
+    ansible_ssh_pass: pi
+    ansible_connection: ssh
+    #source_key: "./.ssh/pi_id_rsa"
+    #dest_key: "{{ lookup('env', 'HOME') }}/.ssh/id_rsa"
     # personal: "{{ lookup('env', 'HOME') }}/personal"
   pre_tasks:
     - name: Update Apt
@@ -24,47 +27,53 @@
       tags: *tags_for_zsh_tasks
     - name: Check that the somefile.conf exists
       stat:
-        path: /home/arab/.oh-my-zsh
+        path: /home/pi/.oh-my-zsh
       register: oh_my_stats
       tags: *tags_for_zsh_tasks
     - name: Install ohmyzsh
       shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
       when: oh_my_stats.stat.exists == False
-      become_user: arab
+      become_user: pi
       tags: *tags_for_zsh_tasks
     - name: Install powerlevel10k
       ansible.builtin.git:
         repo: "https://github.com/romkatv/powerlevel10k.git"
         dest: "~/.oh-my-zsh/custom/themes/powerlevel10k"
         depth: 1
-      become_user: arab
+      become_user: pi
     - name: Install zsh-history-substring-search
       ansible.builtin.git:
         repo: "https://github.com/zsh-users/zsh-history-substring-search"
         dest: "~/.oh-my-zsh/custom/plugins/zsh-history-substring-search"
         depth: 1
-      become_user: arab
+      become_user: pi
     - name: Install zsh-autosuggestions
       ansible.builtin.git:
         repo: "https://github.com/zsh-users/zsh-autosuggestions"
         dest: "~/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
-      become_user: arab
+      become_user: pi
     - name: Install zsh-syntax-highlighting
       ansible.builtin.git:
         repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git"
         dest: "~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
-      become_user: arab
+      become_user: pi
     - name: Download fzf
-      become_user: arab
+      become_user: pi
       ansible.builtin.git:
         repo: https://github.com/junegunn/fzf.git
         dest: ~/.fzf
         depth: 1
+    - name: Check that the somefile.conf exists
+      stat:
+        path: /home/pi/.fzf
+      register: fzf_stats
+      tags: *tags_for_zsh_tasks
     - name: Install fzf
-      become_user: arab
+      become_user: pi
       shell: sudo ~/.fzf/install
+      when: fzf_stats.stat.exists == False
     - name: Install fzf plugin
-      become_user: arab
+      become_user: pi
       ansible.builtin.git:
         repo: "https://github.com/unixorn/fzf-zsh-plugin.git"
         dest: "~/.oh-my-zsh/custom/plugins/fzf-zsh-plugin"
@@ -75,9 +84,10 @@
         - dotfiles
         - stow
     - name: Cloning .dotfiles
+      become_user: pi
       ansible.builtin.git:
         repo: "https://github.com/arabshapt/.dotfiles.git"
-        dest: "{{ lookup('env', 'HOME') }}/.dotfiles"
+        dest: "~/.dotfiles"
         recursive: yes
         update: yes
         accept_hostkey: yes
@@ -87,13 +97,11 @@
         - dotfiles
         - stow
     - name: Remove default .dotfiles
-      shell: sudo rm -f .zshrc .bashrc
+      shell: sudo rm -f .zshrc .bashrc .fzf.bash .fzf.zsh .p10k.zsh .vimrc .gitconfig .tmux.conf
     - name: Stow dotfiles
-      shell: cd "{{ lookup('env', 'HOME') }}/.dotfiles" && ./ubuntu "{{ lookup('env', 'HOME') }}"
-      become_user: arab
+      shell: cd ~/.dotfiles && ./ubuntu
+      become_user: pi
       tags:
         - install
         - dotfiles
         - stow
-    - name: Open zsh
-      shell: zsh
